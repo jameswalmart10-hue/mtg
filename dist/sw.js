@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mtg-deck-analyzer-v1';
+const CACHE_NAME = 'mtg-deck-analyzer-v2'; // Increment this for each update!
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,31 +9,19 @@ const urlsToCache = [
 
 // Install service worker and cache assets
 self.addEventListener('install', event => {
+  // Force the waiting service worker to become the active service worker
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Opened cache:', CACHE_NAME);
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Fetch from cache, fallback to network
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
-  );
-});
-
-// Clean up old caches
+// Activate and clean up old caches immediately
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -45,6 +33,33 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+      // Take control of all clients immediately
+      return self.clients.claim();
     })
+  );
+});
+
+// Network-first strategy for better updates
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    // Try network first
+    fetch(event.request)
+      .then(response => {
+        // Clone the response
+        const responseToCache = response.clone();
+        
+        // Update cache with new response
+        caches.open(CACHE_NAME)
+          .then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request);
+      })
   );
 });
