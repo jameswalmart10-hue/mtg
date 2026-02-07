@@ -5,23 +5,35 @@ exports.handler = async (event, context) => {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS'
     },
     body: JSON.stringify(body)
   })
 
-  // Handle OPTIONS for CORS
-  if (event.httpMethod === 'OPTIONS') {
-    return jsonResponse(200, { message: 'OK' })
-  }
-
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return jsonResponse(405, { error: 'Method not allowed' })
-  }
-
   try {
-    const { apiKey, deckData } = JSON.parse(event.body)
+    // Handle OPTIONS for CORS
+    if (event.httpMethod === 'OPTIONS') {
+      return jsonResponse(200, { message: 'OK' })
+    }
+
+    // Only allow POST requests
+    if (event.httpMethod !== 'POST') {
+      return jsonResponse(405, { error: 'Method not allowed' })
+    }
+
+    // Parse request body
+    let requestBody
+    try {
+      requestBody = JSON.parse(event.body)
+    } catch (parseError) {
+      return jsonResponse(400, { 
+        error: 'Invalid JSON in request body',
+        message: parseError.message
+      })
+    }
+
+    const { apiKey, deckData } = requestBody
 
     if (!apiKey) {
       return jsonResponse(400, { error: 'API key is required' })
@@ -64,11 +76,12 @@ exports.handler = async (event, context) => {
     return jsonResponse(200, data)
 
   } catch (error) {
+    // Catch ANY error and return JSON
     console.error('Function error:', error)
     return jsonResponse(500, { 
       error: 'Internal server error',
       message: error.message,
-      stack: error.stack
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     })
   }
 }
