@@ -329,10 +329,10 @@ RESPONSE FORMAT:
       await new Promise(resolve => setTimeout(resolve, 500)) // brief pause so user sees the message
 
       // ==========================================
-      // STEP 3: Full AI analysis with filtered collection
+      // STEP 3: Direct streaming API call (no timeout!)
       // ==========================================
-      console.log('Step 3: Starting full analysis...')
-      setError(`🤖 Step 3/3: Getting AI suggestions from ${filteredCollection.length} relevant cards...`)
+      console.log('Step 3: Starting streaming analysis...')
+      setError(`🤖 Step 3/3: Analyzing ${filteredCollection.length} relevant cards...`)
 
       // Build the final prompt with filtered collection
       const filteredCollectionList = filteredCollection.map(card =>
@@ -341,7 +341,7 @@ RESPONSE FORMAT:
 
       const illegalCount = availableCards.length - legalCards.length
 
-      // Build the final prompt - split at the collection section and replace it
+      // Build the final prompt
       const collectionStartMarker = 'AVAILABLE COLLECTION ('
       const collectionEndMarker = '=== END COLLECTION ==='
       const startIdx = deckInfo.indexOf(collectionStartMarker)
@@ -361,69 +361,69 @@ ${filteredCollectionList}
         ? beforeCollection + newCollectionSection + afterCollection
         : deckInfo + '\n\n' + newCollectionSection
 
-      const analysisId = `analysis-${Date.now()}-${Math.random().toString(36).substring(7)}`
-
-      const response = await fetch('/.netlify/functions/analyze-deck-background', {
+      // Call Anthropic API directly from browser with streaming
+      const streamResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
         body: JSON.stringify({
-          apiKey: apiKey,
-          deckData: finalPrompt,
-          analysisId: analysisId
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          stream: true,
+          messages: [{ role: 'user', content: finalPrompt }]
         })
       })
 
-      if (response.status !== 202) {
-        throw new Error(`Analysis failed to start: ${response.status}`)
+      if (!streamResponse.ok) {
+        const errData = await streamResponse.json()
+        throw new Error(`API error: ${streamResponse.status} - ${errData.error?.message || JSON.stringify(errData)}`)
       }
 
-      console.log('Background analysis started, polling...')
+      // Read the streaming response
+      const reader = streamResponse.body.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+      let chunkCount = 0
 
-      // Poll for results every 5 seconds
-      const startTime = Date.now()
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch('/.netlify/functions/check-analysis', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ analysisId })
-          })
+      setError('') // clear the status message
+      setAnalysis('...') // show something immediately
 
-          const statusData = await statusResponse.json()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-          if (statusData.status === 'complete') {
-            clearInterval(pollInterval)
-            console.log('Analysis complete!')
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
 
-            const analysisText = statusData.result.content
-              .filter(item => item.type === 'text')
-              .map(item => item.text)
-              .join('\n')
-
-            setAnalysis(analysisText)
-            setLoading(false)
-            setError('')
-          } else if (statusData.status === 'error') {
-            clearInterval(pollInterval)
-            setError('❌ Analysis failed: ' + (statusData.error?.message || JSON.stringify(statusData.error)))
-            setLoading(false)
-          } else {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000)
-            setError(`🤖 Step 3/3: Analyzing ${filteredCollection.length} cards... ${elapsed}s elapsed`)
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim()
+            if (data === '[DONE]') continue
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+                fullText += parsed.delta.text
+                chunkCount++
+                // Update UI every 10 chunks so it feels live
+                if (chunkCount % 10 === 0) {
+                  setAnalysis(fullText)
+                }
+              }
+            } catch (e) {
+              // Skip unparseable lines
+            }
           }
-        } catch (pollError) {
-          console.error('Poll error:', pollError)
         }
-      }, 5000)
+      }
 
-      // Safety timeout: 4 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        if (loading) {
-          setError('⏱️ Analysis timeout. Please try again.')
-          setLoading(false)
-        }
-      }, 240000)
+      // Final update with complete text
+      setAnalysis(fullText)
+      setLoading(false)
+      console.log('Streaming analysis complete!')
 
     } catch (err) {
       console.error('Analysis error:', err)
