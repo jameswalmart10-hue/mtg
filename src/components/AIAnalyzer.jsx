@@ -200,15 +200,26 @@ Before suggesting any card, verify it works with this deck:
 - Board wipes are bad if deck has 30+ creatures - suggest spot removal instead
 - Spell synergies require 20+ instants/sorceries already in deck
 
+RULE 7 - CUTS REQUIRE ECOSYSTEM UNDERSTANDING:
+Before cutting ANY card, ask: "What role does this card play in the FULL deck strategy?"
+A card that looks weak in isolation may be essential to the deck's plan.
+Ask these questions before cutting:
+- Does this card enable other cards in the deck to function?
+- Does this card fill a role that NOTHING else in the deck fills?
+- Does this card synergize with the commander's abilities specifically?
+If YES to any of the above, do NOT cut it unless you have a direct upgrade from the collection.
+Only cut cards that are genuinely replaceable OR have no meaningful role in this specific deck.
+
 === ANALYSIS STEPS ===
 
 STEP 1: Read commander oracle text. List what roles it fills (draw/ramp/removal/evasion).
 STEP 2: Calculate adjusted minimums based on commander role.
 STEP 3: Count current draw/ramp/removal/flying+reach against adjusted minimums.
 STEP 4: Identify ONLY true gaps (below adjusted minimum).
-STEP 5: Scan collection for cards that fill gaps AND fit color identity AND are in the list.
-STEP 6: Identify cuts - prefer cutting cards that are redundant, overcosted, or low synergy.
-STEP 7: Verify every suggestion: Is it in the collection list? Does it match color identity?
+STEP 5: For each card already in the deck, identify its role in the ecosystem before considering cuts.
+STEP 6: Scan collection for cards that fill gaps AND fit color identity AND are in the list.
+STEP 7: Only cut cards with no ecosystem role OR that have a direct upgrade available.
+STEP 8: Verify every suggestion: Is it in the collection list? Does it match color identity?
 
 === RESPONSE FORMAT ===
 
