@@ -42,6 +42,12 @@ self.addEventListener('activate', event => {
 
 // Network-first strategy for better updates
 self.addEventListener('fetch', event => {
+  // Handle share target POST requests
+  if (event.request.url.endsWith('/import') && event.request.method === 'POST') {
+    event.respondWith(handleShareTarget(event.request));
+    return;
+  }
+
   event.respondWith(
     // Try network first
     fetch(event.request)
@@ -63,3 +69,44 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+// Handle shared files from other apps (like Manabox)
+async function handleShareTarget(request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('deck_file');
+    const title = formData.get('title');
+    const text = formData.get('text');
+
+    console.log('Share target received:', { file, title, text });
+
+    // Store the shared data temporarily
+    if (file) {
+      const fileText = await file.text();
+      
+      // Store in cache for the app to retrieve
+      await caches.open(CACHE_NAME).then(cache => {
+        const response = new Response(fileText, {
+          headers: { 'Content-Type': 'text/plain' }
+        });
+        cache.put('/shared-deck-data', response);
+      });
+
+      // Notify all clients about the shared file
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'SHARED_FILE',
+          filename: file.name,
+          size: fileText.length
+        });
+      });
+    }
+
+    // Redirect to the app's main page
+    return Response.redirect('/', 303);
+  } catch (error) {
+    console.error('Share target error:', error);
+    return Response.redirect('/', 303);
+  }
+}

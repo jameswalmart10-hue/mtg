@@ -1,0 +1,133 @@
+.deck-importer {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.importer-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(230, 57, 70, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 800px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.importer-card h2 {
+  color: #e63946;
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+}
+
+.instructions {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.instructions code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: #4ecdc4;
+}
+
+.deck-name-input {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.deck-name-input:focus {
+  outline: none;
+  border-color: #e63946;
+}
+
+.deck-input {
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  font-family: 'Courier New', monospace;
+  resize: vertical;
+  min-height: 300px;
+  transition: border-color 0.3s ease;
+}
+
+.deck-input:focus {
+  outline: none;
+  border-color: #e63946;
+}
+
+.deck-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.error-message {
+  background: rgba(230, 57, 70, 0.2);
+  border: 1px solid #e63946;
+  color: #ff6b6b;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.import-button {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #e63946 0%, #c1121f 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.import-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(230, 57, 70, 0.4);
+}
+
+.import-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading-status {
+  text-align: center;
+  color: #4ecdc4;
+  margin-top: 1rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (max-width: 768px) {
+  .importer-card {
+    padding: 1.5rem;
+  }
+  
+  .importer-card h2 {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,341 @@
+.collection-manager {
+  width: 100%;
+}
+
+.collection-header {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(230, 57, 70, 0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.collection-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.collection-actions button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.collection-actions .import-button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.collection-actions button:hover:not(:disabled),
+.collection-actions .import-button:hover {
+  background: rgba(230, 57, 70, 0.2);
+  border-color: #e63946;
+}
+
+.collection-actions button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.collection-header h2 {
+  color: #e63946;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.collection-stats {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.collection-stats span {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.storage-info {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.storage-warning {
+  color: #e63946;
+  font-weight: bold;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.empty-collection {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 4rem;
+  text-align: center;
+}
+
+.empty-collection p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.collection-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 250px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #e63946;
+}
+
+.sort-select {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #e63946;
+}
+
+.sort-select option {
+  background: #1a1a2e;
+  color: white;
+}
+
+.selection-toolbar {
+  background: rgba(78, 205, 196, 0.2);
+  border: 2px solid #4ecdc4;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.selection-toolbar span {
+  font-weight: bold;
+  color: #4ecdc4;
+  font-size: 1.1rem;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.selection-actions button {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.selection-actions button:hover {
+  background: rgba(78, 205, 196, 0.3);
+  border-color: #4ecdc4;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.card-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(0, 0, 0, 0.3);
+  border: 3px solid transparent;
+}
+
+.card-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(230, 57, 70, 0.4);
+}
+
+.card-item.selected {
+  border-color: #4ecdc4;
+  box-shadow: 0 0 20px rgba(78, 205, 196, 0.6);
+}
+
+.card-item.long-pressing {
+  animation: pulse-delete 0.8s ease-in-out;
+  border-color: #e63946;
+}
+
+@keyframes pulse-delete {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(230, 57, 70, 0.6);
+  }
+  50% {
+    transform: scale(0.95);
+    box-shadow: 0 0 30px rgba(230, 57, 70, 0.8);
+  }
+}
+
+.card-item img {
+  width: 100%;
+  display: block;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.card-item:hover img {
+  transform: scale(1.05);
+}
+
+.card-placeholder {
+  padding: 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-placeholder p {
+  color: white;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.card-placeholder small {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.card-quantity {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 8px;
+  font-weight: bold;
+  min-width: 60px;
+  text-align: center;
+  border: 2px solid #e63946;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.owned-count {
+  margin-bottom: 0.25rem;
+  color: #4ecdc4;
+}
+
+.available-count {
+  color: #4ecdc4;
+}
+
+.available-count.none-available {
+  color: #e63946;
+  font-weight: bold;
+}
+
+.selected-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #4ecdc4;
+  color: #1a1a2e;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  border: 2px solid white;
+  pointer-events: none;
+}
+
+.danger-button {
+  background: rgba(230, 57, 70, 0.2) !important;
+  border-color: #e63946 !important;
+}
+
+.danger-button:hover {
+  background: #e63946 !important;
+}
+
+@media (max-width: 768px) {
+  .collection-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .collection-controls {
+    flex-direction: column;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+}
