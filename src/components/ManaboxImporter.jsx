@@ -62,34 +62,27 @@ function ManaboxImporter({ onImport, onClose }) {
 
       setProgress({ 
         stage: 'parsing', 
-        percent: 10, 
-        message: `Found ${totalCards} cards` 
+        percent: 5, 
+        message: `Found ${totalCards} unique cards - looking them up...` 
       })
 
-      // Step 2: Ensure Scryfall bulk data is ready
-      await scryfallService.ensureBulkData((bulkProgress) => {
-        setProgress({
-          stage: bulkProgress.stage,
-          percent: 10 + (bulkProgress.percent * 0.4), // 10-50%
-          message: bulkProgress.message
-        })
-      })
-
-      // Step 3: Extract card names
+      // Step 2: Extract unique card names
       const cardNames = manaboxParser.extractCardNames(parsedDeck)
-      console.log('Unique card names:', cardNames.length)
+      console.log('Unique card names to look up:', cardNames.length)
 
+      // Step 3: Look up cards directly via Scryfall API (no bulk download needed!)
+      // Rate limited to 8/sec, so 100 cards = ~13 seconds
+      const estimatedSeconds = Math.ceil(cardNames.length / 8)
       setProgress({ 
         stage: 'matching', 
-        percent: 50, 
-        message: 'Matching cards with database...' 
+        percent: 10, 
+        message: `Looking up ${cardNames.length} cards via Scryfall (~${estimatedSeconds} seconds)...` 
       })
 
-      // Step 4: Look up cards in Scryfall database
       const scryfallResults = await scryfallService.findCardsByNames(cardNames, (matchProgress) => {
         setProgress({
           stage: matchProgress.stage,
-          percent: 50 + (matchProgress.percent * 0.4), // 50-90%
+          percent: 10 + (matchProgress.percent * 0.85), // 10-95%
           message: matchProgress.message
         })
       })
@@ -98,7 +91,7 @@ function ManaboxImporter({ onImport, onClose }) {
       console.log('Found:', scryfallResults.found.length)
       console.log('Not found:', scryfallResults.notFound.length)
 
-      // Step 5: Merge Scryfall data with parsed deck
+      // Step 4: Merge Scryfall data with parsed deck
       const enhancedDeck = manaboxParser.mergeScryfallData(parsedDeck, scryfallResults)
 
       console.log('Enhanced deck:', enhancedDeck)
