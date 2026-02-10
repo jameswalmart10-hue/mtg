@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './AIAnalyzer.css'
+import { filterCollectionByNeeds, buildFilterSummary } from '../services/collectionFilter'
 
 function AIAnalyzer({ deck, collection, decks }) {
   const [apiKey, setApiKey] = useState(localStorage.getItem('anthropic_api_key') || '')
@@ -258,90 +259,175 @@ RESPONSE FORMAT:
     setAnalysis(null)
 
     try {
-      // Generate unique ID for this analysis
-      const analysisId = `analysis-${Date.now()}-${Math.random().toString(36).substring(7)}`
-      
-      console.log(`Starting background analysis ${analysisId}...`)
-      setError('🔍 Scanning your full collection... This may take 30-60 seconds. Please wait...')
-      
-      // Start background function
-      const response = await fetch('/.netlify/functions/analyze-deck-background', {
+      // ==========================================
+      // STEP 1: Understand the deck (fast, ~5-10 sec)
+      // ==========================================
+      console.log('Step 1: Analyzing deck needs...')
+      setError('🧠 Step 1/3: Understanding your deck strategy...')
+
+      const deckInfo = formatDeckForAI()
+      const commanders = deck.cards.filter((card, index) => 
+        index === 0 || (card.type?.toLowerCase().includes('legendary') && 
+        card.type?.toLowerCase().includes('creature') && index < 2)
+      )
+      const commander = commanders[0]
+
+      const needsResponse = await fetch('/.netlify/functions/analyze-deck-needs', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey: apiKey,
-          deckData: formatDeckForAI(),
+          deck: deck,
+          commander: commander
+        })
+      })
+
+      if (!needsResponse.ok) {
+        throw new Error(`Deck analysis failed: ${needsResponse.status}`)
+      }
+
+      const needsData = await needsResponse.json()
+      const needs = needsData.needs
+
+      console.log('Deck needs identified:', needs)
+      console.log('Strategy:', needs.deckStrategy)
+      console.log('Gaps:', needs.gaps)
+
+      // ==========================================
+      // STEP 2: Filter collection locally (instant)
+      // ==========================================
+      console.log('Step 2: Filtering collection...')
+      setError('🔍 Step 2/3: Finding relevant cards in your collection...')
+
+      const availableCards = getAvailableCards()
+
+      // Get color identity for legal card filtering
+      const getColorIdentity = (cards) => {
+        const colors = new Set()
+        cards.forEach(card => {
+          if (card.colorIdentity && Array.isArray(card.colorIdentity)) {
+            card.colorIdentity.forEach(c => colors.add(c))
+          }
+        })
+        return Array.from(colors).sort()
+      }
+      const colorIdentity = getColorIdentity(commanders)
+
+      // Filter by color identity first
+      const legalCards = availableCards.filter(card => {
+        if (!card.colorIdentity || card.colorIdentity.length === 0) return true
+        return card.colorIdentity.every(color => colorIdentity.includes(color))
+      })
+
+      // Now smart-filter by deck needs (browser-side, instant)
+      const filteredCollection = filterCollectionByNeeds(legalCards, needs, deck.cards)
+      const filterSummary = buildFilterSummary(filteredCollection, needs)
+
+      console.log('Filter summary:', filterSummary)
+      setError(`✅ Step 2/3: ${filterSummary}`)
+
+      await new Promise(resolve => setTimeout(resolve, 500)) // brief pause so user sees the message
+
+      // ==========================================
+      // STEP 3: Full AI analysis with filtered collection
+      // ==========================================
+      console.log('Step 3: Starting full analysis...')
+      setError(`🤖 Step 3/3: Getting AI suggestions from ${filteredCollection.length} relevant cards...`)
+
+      // Build the final prompt with filtered collection
+      const filteredCollectionList = filteredCollection.map(card =>
+        `${card.name} | ${card.type || ''} | ${card.cmc || 0}CMC | ${card.keywords?.join(', ') || ''} | ${card.oracleText || ''}`
+      ).join('\n')
+
+      const illegalCount = availableCards.length - legalCards.length
+
+      // Build the final prompt - split at the collection section and replace it
+      const collectionStartMarker = 'AVAILABLE COLLECTION ('
+      const collectionEndMarker = '=== END COLLECTION ==='
+      const startIdx = deckInfo.indexOf(collectionStartMarker)
+      const endIdx = deckInfo.indexOf(collectionEndMarker)
+      
+      const beforeCollection = startIdx >= 0 ? deckInfo.substring(0, startIdx) : deckInfo
+      const afterCollection = endIdx >= 0 ? deckInfo.substring(endIdx + collectionEndMarker.length) : ''
+      
+      const newCollectionSection = `AVAILABLE COLLECTION (${filteredCollection.length} pre-filtered relevant cards):
+Note: Pre-selected from ${legalCards.length} legal cards based on gaps: ${needs.gaps?.join(', ') || 'general improvement'}
+
+${filteredCollectionList}
+
+=== END COLLECTION ===${illegalCount > 0 ? '\n\nNOTE: ' + illegalCount + ' cards excluded (wrong color identity)' : ''}`
+
+      const finalPrompt = startIdx >= 0 
+        ? beforeCollection + newCollectionSection + afterCollection
+        : deckInfo + '\n\n' + newCollectionSection
+
+      const analysisId = `analysis-${Date.now()}-${Math.random().toString(36).substring(7)}`
+
+      const response = await fetch('/.netlify/functions/analyze-deck-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: apiKey,
+          deckData: finalPrompt,
           analysisId: analysisId
         })
       })
 
       if (response.status !== 202) {
-        throw new Error(`Background function failed to start: ${response.status}`)
+        throw new Error(`Analysis failed to start: ${response.status}`)
       }
 
-      console.log('Background function started, polling for results...')
-      
+      console.log('Background analysis started, polling...')
+
       // Poll for results every 5 seconds
+      const startTime = Date.now()
       const pollInterval = setInterval(async () => {
         try {
           const statusResponse = await fetch('/.netlify/functions/check-analysis', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              analysisId: analysisId
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ analysisId })
           })
 
           const statusData = await statusResponse.json()
 
           if (statusData.status === 'complete') {
-            // Analysis is done!
             clearInterval(pollInterval)
             console.log('Analysis complete!')
-            
+
             const analysisText = statusData.result.content
               .filter(item => item.type === 'text')
               .map(item => item.text)
               .join('\n')
-            
+
             setAnalysis(analysisText)
             setLoading(false)
             setError('')
           } else if (statusData.status === 'error') {
-            // Analysis failed
             clearInterval(pollInterval)
-            console.error('Analysis error:', statusData.error)
-            setError('❌ Analysis failed: ' + (statusData.error.message || JSON.stringify(statusData.error)))
+            setError('❌ Analysis failed: ' + (statusData.error?.message || JSON.stringify(statusData.error)))
             setLoading(false)
-          } else if (statusData.status === 'processing') {
-            // Still processing, update status message
-            const elapsed = Math.floor((Date.now() - statusData.startTime) / 1000)
-            setError(`🔄 Analyzing deck... ${elapsed} seconds elapsed. Scanning ${legalCards.length} cards...`)
+          } else {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000)
+            setError(`🤖 Step 3/3: Analyzing ${filteredCollection.length} cards... ${elapsed}s elapsed`)
           }
-          // status === 'pending' means not started yet, keep polling
-          
         } catch (pollError) {
-          console.error('Error checking status:', pollError)
-          // Don't stop polling on error, might be temporary network issue
+          console.error('Poll error:', pollError)
         }
-      }, 5000) // Check every 5 seconds
+      }, 5000)
 
-      // Timeout after 5 minutes (background functions have 15 min, but this is safety)
+      // Safety timeout: 4 minutes
       setTimeout(() => {
         clearInterval(pollInterval)
         if (loading) {
-          setError('⏱️ Analysis timeout - this is taking longer than expected. Please try again.')
+          setError('⏱️ Analysis timeout. Please try again.')
           setLoading(false)
         }
-      }, 300000) // 5 minutes
+      }, 240000)
 
     } catch (err) {
-      console.error('Error:', err)
-      setError(`❌ Failed to start analysis: ${err.message}`)
+      console.error('Analysis error:', err)
+      setError(`❌ Failed: ${err.message}`)
       setLoading(false)
     }
   }
