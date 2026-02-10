@@ -77,9 +77,9 @@ function AIAnalyzer({ deck, collection, decks }) {
     // Filter available cards by color identity (CRITICAL FOR COMMANDER)
     const legalCards = availableCards.filter(card => {
       // Cards with no color identity (empty array) are truly colorless - legal in any deck
-      if (!card.colorIdentity || card.colorIdentity.length === 0) return true
-      // Check if ALL of the card's color identity is within commander's identity
-      return card.colorIdentity.every(color => colorIdentity.includes(color))
+      const cardCI = card.colorIdentity || card.color_identity || []
+      if (cardCI.length === 0) return true
+      return cardCI.every(color => colorIdentity.includes(color))
     })
     
     const illegalCount = availableCards.length - legalCards.length
@@ -161,89 +161,76 @@ CURRENT STATS:
 AVAILABLE COLLECTION (${legalCards.length} cards):
 ${fullCollectionList}
 
-INSTRUCTIONS:
-1. COMMANDER AS ENGINE (Check BEFORE applying minimums):
-   - Carefully read what commander does each turn
-   - Check if commander fills a deck role:
-     * Draws cards? -> Deck needs LESS card draw (6-8 acceptable)
-     * Makes mana or cheats costs? -> Deck needs LESS ramp (6-8 acceptable)
-     * Removes threats? -> Deck needs LESS removal (5-7 acceptable)
-   - Look at deck composition - do cards synergize with commander?
-     * Example: High-pip cards + mana-cheating commander = built-in ramp
-   - Adjust minimums based on what commander ACTUALLY provides
-   - Don't suggest adding what the deck already does well
-   - If unsure, maintain standard minimums (10/10/8)
+=== HARD RULES (NEVER VIOLATE) ===
 
-2. EXCESSIVE ROLE CHECK (Critical - prevents contradictions):
-   - If role count EXCEEDS adjusted maximum:
-     * Example: 20 ramp when only 6-8 needed
-     * Action: ONLY remove excess cards of that role
-     * DO NOT suggest adding MORE of that same role
-     * Replace with DIFFERENT roles (draw/removal/synergy, NOT more ramp)
-   - If removing ramp because excessive -> Add draw/removal/synergy
-   - If removing draw because excessive -> Add ramp/removal/synergy
-   - Never: "Too much ramp" + "Add more ramp" (contradiction!)
+RULE 1 - COLOR IDENTITY: COLOR IDENTITY IS ${colorIdentity.join('') || 'Colorless'}.
+Only suggest cards that fit within this exact color identity.
+A card is ILLEGAL if it contains any mana symbol not in the commander's identity.
+This applies to ALL suggested additions. No exceptions.
 
-3. DECK COMPOSITION ANALYSIS (Check before suggesting ANY card):
-   - Count card types: Creatures, Instants, Sorceries, Artifacts, Enchantments
-   - Check creature sizes: How many 1/1s? How many 3+ power?
-   - Before suggesting specific cards:
-     * Skullclamp -> Needs 1/1 creatures or token generators, if deck has NONE, don't suggest
-     * Sacrifice outlets -> Need expendable creatures (tokens, 1/1s), if none, don't suggest
-     * Tribal payoffs -> Need 15+ of that creature type, if less, don't suggest
-     * Board wipes -> Bad if deck is 40+ creatures, suggest spot removal instead
-     * Spell synergies -> Need 20+ instant/sorcery, if less, don't suggest
-   - Match suggestions to deck's ACTUAL composition, not just "generically good cards"
+RULE 2 - COLLECTION ONLY: ONLY suggest cards that appear VERBATIM in the collection list above.
+Do NOT suggest cards from your own knowledge. Do NOT suggest cards not in the list.
+If a card is not in the collection list above, it CANNOT be suggested. Period.
 
-4. Analyze commander strategy and extract key synergy words
+RULE 3 - FLYING/REACH PROTECTION:
+Current air defense: ${cardTypes.flying} flying + ${cardTypes.reach} reach = ${cardTypes.flying + cardTypes.reach} total
+- If combined flying+reach is BELOW 8: DO NOT cut ANY flying or reach creatures. Add more instead.
+- If combined flying+reach is 8-12: May cut flying/reach ONLY if replacing with another flying/reach card.
+- If combined flying+reach is ABOVE 12: May cut excess, replace with non-flying cards.
+Flying and reach BOTH count as air defense. Treat them equally.
 
-5. Scan collection and mentally select TOP 100 cards that match:
-   - Commander synergy (creature types, keywords, triggers)
-   - Deck functional needs (draw/ramp/removal gaps AFTER commander analysis)
-   - Deck composition compatibility (will this card actually work here?)
-   - cEDH competitive ratios (adjusted for commander role)
+RULE 4 - COMMANDER ANALYSIS FIRST:
+Read the commander's oracle text carefully. Identify what it does EVERY TURN:
+- Does it draw cards on trigger? -> Card draw minimum drops to 6-8
+- Does it make mana or cheat costs? -> Ramp minimum drops to 6-8  
+- Does it remove permanents? -> Removal minimum drops to 5-7
+- Does it have flying/reach itself? -> Counts toward air defense
+Current counts: Draw=${cardTypes.draw}, Ramp=${cardTypes.ramp}, Removal=${cardTypes.removal}
+ONLY flag a category as a "gap" if it is BELOW the adjusted minimum for this commander.
 
-6. Maintain minimum ratios UNLESS commander provides it OR deck has excessive:
-   - Standard: 10+ draw, 10+ ramp, 8+ removal
-   - Adjust down if commander fills that role
-   - If EXCESSIVE, remove excess and replace with different roles
+RULE 5 - NO CONTRADICTIONS:
+If a category is ABOVE its maximum -> remove excess, DO NOT also add more of that category.
+If a category is BELOW its minimum -> add more, DO NOT also remove from that category.
+Never say "too much X" and also "add more X" in the same analysis.
 
-7. If below adjusted minimum, DO NOT remove any of that type
+RULE 6 - CARD COMPOSITION CHECK:
+Before suggesting any card, verify it works with this deck:
+- Sacrifice synergies require sacrifice outlets or expendable creatures already in deck
+- Tribal payoffs require 15+ of that creature type already in deck
+- Board wipes are bad if deck has 30+ creatures - suggest spot removal instead
+- Spell synergies require 20+ instants/sorceries already in deck
 
-8. Check flying defense - BOTH flying AND reach block flyers:
-   - Flying creatures: ${cardTypes.flying}
-   - Reach creatures: ${cardTypes.reach}
-   - Combined air defense: ${cardTypes.flying + cardTypes.reach}
-   - Need 8+ total (flying + reach) for adequate defense
-   - If total < 8: Vulnerable to enemy flyers, need more
+=== ANALYSIS STEPS ===
 
-9. Ideal mana curve: 10-15 low, 20-25 mid, 15-20 high
+STEP 1: Read commander oracle text. List what roles it fills (draw/ramp/removal/evasion).
+STEP 2: Calculate adjusted minimums based on commander role.
+STEP 3: Count current draw/ramp/removal/flying+reach against adjusted minimums.
+STEP 4: Identify ONLY true gaps (below adjusted minimum).
+STEP 5: Scan collection for cards that fill gaps AND fit color identity AND are in the list.
+STEP 6: Identify cuts - prefer cutting cards that are redundant, overcosted, or low synergy.
+STEP 7: Verify every suggestion: Is it in the collection list? Does it match color identity?
 
-10. Only suggest cards from collection shown above
+=== RESPONSE FORMAT ===
 
-11. Only suggest cards NOT already in deck
+**1. COMMANDER ANALYSIS**
+- What the commander does each turn (be specific about triggers/abilities)
+- Roles filled: [draw/ramp/removal/evasion - list which apply]
+- Adjusted minimums: Draw=[X], Ramp=[X], Removal=[X]
 
-12. Maintain exactly 100 cards (Remove X = Add X)
+**2. CURRENT STATS vs ADJUSTED MINIMUMS**
+- Card Draw: ${cardTypes.draw} (adjusted minimum: X) - [OK / BELOW / EXCESSIVE]
+- Ramp: ${cardTypes.ramp} (adjusted minimum: X) - [OK / BELOW / EXCESSIVE]
+- Removal: ${cardTypes.removal} (adjusted minimum: X) - [OK / BELOW / EXCESSIVE]
+- Air Defense: ${cardTypes.flying + cardTypes.reach} flying+reach (need 8+) - [OK / BELOW / EXCESSIVE]
 
-RESPONSE FORMAT:
-**1. COMMANDER STRATEGY**
-- Core strategy in 2-3 sentences
-- Key synergy words identified
-
-**2. CRITICAL GAPS**
-- What's missing (draw/ramp/removal/flying below minimum)
-- Mana curve issues (too top/bottom heavy)
-
-**3. TOP ADDITIONS** (from your TOP 100 scan)
-- List 5-10 best cards from collection with brief reason
-- Prioritize filling gaps first, then synergy
+**3. RECOMMENDED ADDITIONS** (ONLY from collection list, ONLY matching color identity)
+- Card name | Why it helps | What gap it fills
 
 **4. RECOMMENDED CUTS**
-- List same number of cards to remove
-- Brief reason for each
+- Card name | Why it's the weakest link
 
 **5. SUMMARY**
-- Net change: Remove X, Add X
+- Remove X, Add X (must be equal)
 - Key improvements`
   }
 
@@ -313,10 +300,11 @@ RESPONSE FORMAT:
       }
       const colorIdentity = getColorIdentity(commanders)
 
-      // Filter by color identity first
+      // Filter by color identity first (check both field name variants)
       const legalCards = availableCards.filter(card => {
-        if (!card.colorIdentity || card.colorIdentity.length === 0) return true
-        return card.colorIdentity.every(color => colorIdentity.includes(color))
+        const cardCI = card.colorIdentity || card.color_identity || []
+        if (cardCI.length === 0) return true
+        return cardCI.every(color => colorIdentity.includes(color))
       })
 
       // Now smart-filter by deck needs (browser-side, instant)

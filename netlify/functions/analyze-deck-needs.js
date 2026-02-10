@@ -72,7 +72,12 @@ Analyze this deck and return ONLY a JSON object (no other text, no markdown) wit
   "cmcCurveNote": "curve is top-heavy, needs more 2-3 drops"
 }
 
-Be precise. The wantedKeywords, synergyOracleTerms, and wantedCreatureTypes will search the player's collection so include ALL relevant terms for this deck's strategy.`
+Be precise. IMPORTANT RULES:
+1. Read commander oracle text CAREFULLY - if commander draws cards, needsCardDraw threshold is lower (6-8 ok).
+2. If commander makes mana or cheats costs, needsRamp threshold is lower (6-8 ok).
+3. Count flying+reach creatures in the deck list - if below 8 total, include Flying and Reach in wantedKeywords.
+4. If commander has flying, include Flying in wantedKeywords for air defense support.
+5. The wantedKeywords, synergyOracleTerms, and wantedCreatureTypes search the player collection - include ALL relevant synergy terms.`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

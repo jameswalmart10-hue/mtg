@@ -54,7 +54,7 @@ class ScryfallService {
       mana_cost: card.mana_cost || card.card_faces?.[0]?.mana_cost || '',
       cmc: card.cmc || 0,
       colors: card.colors || card.card_faces?.[0]?.colors || [],
-      color_identity: card.color_identity || [],
+      colorIdentity: card.color_identity || [],
       power: card.power || null,
       toughness: card.toughness || null,
       keywords: card.keywords || [],
