@@ -336,7 +336,7 @@ RESPONSE FORMAT:
 
       // Build the final prompt with filtered collection
       const filteredCollectionList = filteredCollection.map(card =>
-        `${card.name} | ${card.type || ''} | ${card.cmc || 0}CMC | ${card.keywords?.join(', ') || ''} | ${card.oracleText || ''}`
+        `${card.name} | ${card.type || ''} | ${card.cmc || 0}CMC | ${card.keywords?.join(', ') || ''} | ${(card.oracleText || '').substring(0, 80)}`
       ).join('\n')
 
       const illegalCount = availableCards.length - legalCards.length

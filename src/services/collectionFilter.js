@@ -24,7 +24,7 @@ export function filterCollectionByNeeds(collection, needs, deckCards) {
   console.log('Top 10 scores:', scoredCards.slice(0, 10).map(c => `${c.name}: ${c.relevanceScore}`))
 
   // Take top 200 most relevant cards
-  const filtered = scoredCards.slice(0, 200)
+  const filtered = scoredCards.slice(0, 100)
 
   console.log(`Sending ${filtered.length} cards to AI for final analysis`)
   console.log('=== COLLECTION FILTER COMPLETE ===')
