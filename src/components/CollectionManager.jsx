@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './CollectionManager.css'
+import ManaboxImporter from './ManaboxImporter'
 
 function CollectionManager({ collection, setCollection, decks }) {
   const [selectedCards, setSelectedCards] = useState([])
@@ -8,6 +9,7 @@ function CollectionManager({ collection, setCollection, decks }) {
   const [loadingImages, setLoadingImages] = useState(false)
   const [longPressTimer, setLongPressTimer] = useState(null)
   const [longPressCard, setLongPressCard] = useState(null)
+  const [showManaboxImporter, setShowManaboxImporter] = useState(false)
   
   // Fetch image URLs for cards that don't have them
   const handleLoadImages = async () => {
@@ -168,22 +170,48 @@ function CollectionManager({ collection, setCollection, decks }) {
 
     const reader = new FileReader()
     reader.onload = (e) => {
+      const text = e.target.result
       try {
-        const importedData = JSON.parse(e.target.result)
+        const importedData = JSON.parse(text)
         if (!Array.isArray(importedData)) {
-          throw new Error('Invalid collection format')
+          throw new Error('Invalid collection format - expected JSON array')
         }
-        
         const totalCards = importedData.reduce((sum, c) => sum + c.quantity, 0)
         if (window.confirm(`Import ${totalCards} cards? This will replace your current collection.`)) {
           setCollection(importedData)
           alert('Collection imported successfully!')
         }
       } catch (err) {
-        alert('Failed to import collection: ' + err.message)
+        alert('Failed to import collection: ' + err.message + '\n\nTo import a Manabox CSV/TXT file, use the "📥 Import from Manabox" button!')
       }
     }
     reader.readAsText(file)
+    event.target.value = ''
+  }
+
+  // Handle Manabox import adding to collection (not creating a deck)
+  const handleManaboxCollectionImport = (importedDeck) => {
+    const cards = importedDeck.cards || []
+    if (cards.length === 0) {
+      alert('No cards found to import!')
+      return
+    }
+
+    const newCollection = [...collection]
+    cards.forEach(card => {
+      if (!card.scryfallId) return
+      const existing = newCollection.find(c => c.scryfallId === card.scryfallId)
+      if (existing) {
+        existing.quantity += card.quantity
+      } else {
+        newCollection.push(card)
+      }
+    })
+
+    setCollection(newCollection)
+    setShowManaboxImporter(false)
+    const total = cards.reduce((sum, c) => sum + c.quantity, 0)
+    alert(`✅ Added ${total} cards (${cards.length} unique) to your collection!`)
   }
 
   const filteredCollection = collectionWithAvailability.filter(card =>
@@ -247,8 +275,11 @@ function CollectionManager({ collection, setCollection, decks }) {
           <button onClick={handleExportCollection}>
             💾 Export Collection
           </button>
+          <button className="manabox-btn" onClick={() => setShowManaboxImporter(true)}>
+            📥 Import from Manabox
+          </button>
           <label className="import-button">
-            📂 Import Collection
+            📂 Import JSON Backup
             <input 
               type="file" 
               accept=".json" 
@@ -356,6 +387,13 @@ function CollectionManager({ collection, setCollection, decks }) {
             ))}
           </div>
         </>
+      )}
+
+      {showManaboxImporter && (
+        <ManaboxImporter
+          onImport={handleManaboxCollectionImport}
+          onClose={() => setShowManaboxImporter(false)}
+        />
       )}
     </div>
   )
